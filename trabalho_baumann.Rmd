@@ -1,0 +1,40 @@
+---
+title: "trabalho_Baumann"
+author: "Pedro Pietrafesa"
+date: "11/7/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+
+library(readxl)
+trabalho <- read_excel("~/Library/Mobile Documents/com~apple~CloudDocs/Documents/Graduação Estatísitca/Controle Estatístico de Qualidade /trabalho.xlsx")
+
+
+shapiro.test(trabalho$`Agua (m3)`)
+
+hist(trabalho$`Agua (m3)`)
+
+trabalho$`Agua (m3)` <- log(trabalho$`Agua (m3)`)
+
+
+
+```
+
+
+
+```{r}
+
+library(readxl)
+tab1 <- read_excel("~/Library/Mobile Documents/com~apple~CloudDocs/Documents/Graduação Estatísitca/Controle Estatístico de Qualidade /tab1.xlsx")
+
+shapiro.test(tab1$`energia(kwh)`)
+
+```
+
