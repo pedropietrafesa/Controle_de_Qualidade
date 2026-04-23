@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exercício 7b — eh_cheia() | Animação Interativa</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:     #EDE8DC;
+    --cream:  #F5F0E8;
+    --navy:   #1B2A4A;
+    --red:    #C94B2C;
+    --green:  #3A6B4C;
+    --gold:   #C8860A;
+    --gray:   #6B6355;
+    --border: #C8C0A8;
+    --white:  #FFFFFF;
+    --green-light: #D4E8D4;
+    --red-light:   #F5D5CC;
+    --gold-light:  #FBF0D4;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--navy);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 38px 38px;
+    background-attachment: fixed;
+  }
+
+  /* ── Corner brackets ── */
+  .page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 36px 28px 60px;
+    position: relative;
+  }
+  .page::before, .page::after,
+  .corner-br, .corner-bl {
+    content:'';
+    position:fixed;
+    width:40px; height:40px;
+    border-color: var(--navy);
+    border-style: solid;
+    opacity: 0.4;
+  }
+  .page::before { top:18px; left:18px; border-width:2px 0 0 2px; }
+  .page::after  { top:18px; right:18px; border-width:2px 2px 0 0; }
+  .corner-br    { bottom:18px; right:18px; border-width:0 2px 2px 0; }
+  .corner-bl    { bottom:18px; left:18px; border-width:0 0 2px 2px; }
+
+  /* ── Header ── */
+  header {
+    text-align: center;
+    margin-bottom: 32px;
+    padding-bottom: 22px;
+    border-bottom: 2px solid var(--navy);
+  }
+  .ex-label { font-family:'Inter',sans-serif; font-size:13px; color:var(--gray); letter-spacing:3px; text-transform:uppercase; margin-bottom:6px; }
+  h1 { font-family:'Playfair Display',serif; font-size:38px; color:var(--navy); margin-bottom:8px; }
+  .subtitle { font-size:15px; color:var(--gray); }
+
+  /* ── Layout ── */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 1fr 420px;
+    gap: 28px;
+    align-items: start;
+  }
+  @media(max-width:820px){ .main-grid{grid-template-columns:1fr;} }
+
+  /* ── Section boxes ── */
+  .panel {
+    background: var(--cream);
+    border: 2px solid var(--navy);
+    border-radius: 2px;
+    padding: 22px 24px;
+    margin-bottom: 20px;
+  }
+  .panel-title {
+    font-family:'Playfair Display',serif;
+    font-size:18px;
+    color: var(--navy);
+    margin-bottom:14px;
+    padding-bottom:8px;
+    border-bottom:1px solid var(--border);
+  }
+
+  /* ── Tree SVG ── */
+  #treeSvg {
+    width: 100%;
+    height: 300px;
+    display: block;
+  }
+  .tree-node circle {
+    stroke: var(--navy);
+    stroke-width: 3;
+    transition: fill 0.35s, stroke 0.35s, stroke-width 0.35s;
+  }
+  .tree-node text {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 700;
+    fill: white;
+    text-anchor: middle;
+    dominant-baseline: central;
+    pointer-events: none;
+  }
+  .tree-node.active circle { stroke-width: 5; filter: drop-shadow(0 0 8px rgba(27,42,74,0.5)); }
+  .tree-node.done-true  circle { opacity: 0.55; }
+  .tree-node.done-false circle { opacity: 0.55; }
+  .tree-edge { stroke: var(--navy); stroke-width: 2.5; transition: stroke 0.3s; }
+  .tree-edge.active { stroke: var(--red); stroke-width: 3.5; }
+
+  /* ── Controls ── */
+  .controls {
+    display: flex;
+    gap:10px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+    align-items: center;
+  }
+  .btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 20px;
+    border: 2px solid var(--navy);
+    background: var(--navy);
+    color: white;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.18s;
+    letter-spacing: 0.5px;
+  }
+  .btn:hover { background: var(--red); border-color: var(--red); }
+  .btn.secondary { background: var(--cream); color: var(--navy); }
+  .btn.secondary:hover { background: var(--navy); color: white; }
+  .btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+  /* ── Tree selector ── */
+  .tree-tabs { display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+  .tree-tab {
+    font-family:'Inter',sans-serif; font-size:12px; font-weight:600;
+    padding:6px 16px; border:2px solid var(--border); background:var(--cream);
+    color:var(--navy); cursor:pointer; border-radius:2px; transition:all 0.18s;
+    letter-spacing:0.5px;
+  }
+  .tree-tab:hover { border-color:var(--navy); }
+  .tree-tab.active { background:var(--navy); color:white; border-color:var(--navy); }
+
+  /* ── Info box ── */
+  .info-box {
+    background: var(--cream);
+    border: 2px solid var(--navy);
+    padding: 14px 18px;
+    min-height: 72px;
+    margin-bottom: 14px;
+    transition: background 0.3s, border-color 0.3s;
+  }
+  .info-box.state-true  { background:var(--green-light); border-color:var(--green); }
+  .info-box.state-false { background:var(--red-light);   border-color:var(--red);   }
+  .info-box.state-check { background:var(--gold-light);  border-color:var(--gold);  }
+
+  .info-step { font-size:11px; font-weight:600; color:var(--gray); letter-spacing:2px; text-transform:uppercase; margin-bottom:6px; }
+  .info-main { font-size:15px; font-weight:600; color:var(--navy); margin-bottom:4px; }
+  .info-sub  { font-size:13px; color:var(--gray); line-height:1.5; }
+  .info-result {
+    display:inline-block;
+    font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700;
+    padding:3px 12px; border-radius:2px; margin-top:6px;
+    background:var(--navy); color:white;
+  }
+  .info-result.true  { background:var(--green); }
+  .info-result.false { background:var(--red); }
+
+  /* ── Call stack ── */
+  .call-stack { display:flex; flex-direction:column; gap:4px; margin-bottom:14px; }
+  .call-frame {
+    font-family:'JetBrains Mono',monospace; font-size:11.5px;
+    padding:6px 12px; border:1.5px solid var(--border);
+    background:var(--cream); color:var(--navy);
+    transition:all 0.25s; display:flex; align-items:center; justify-content:space-between;
+  }
+  .call-frame.active { border-color:var(--navy); background:var(--navy); color:white; }
+  .call-frame.returned-true  { border-color:var(--green); background:var(--green-light); color:var(--green); }
+  .call-frame.returned-false { border-color:var(--red);   background:var(--red-light);   color:var(--red);   }
+  .call-badge { font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; }
+  .call-badge.true  { background:var(--green); color:white; }
+  .call-badge.false { background:var(--red);   color:white; }
+  .call-badge.pending { background:var(--border); color:var(--navy); }
+
+  /* ── Code panel ── */
+  .code-wrap {
+    background: var(--navy);
+    border: 2px solid var(--navy);
+    padding: 18px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.85;
+    color: #94A3B8;
+  }
+  .code-line { display:block; padding: 1px 0; border-radius:2px; transition:background 0.2s; }
+  .code-line.hl { background: rgba(58,107,76,0.3); color:#A3D4AF; font-weight:600; }
+  .code-line.cmt { color: #5A7A3A; }
+  .code-line.kw  { color: #79B8FF; }
+  .line-num { color:#475569; margin-right:14px; user-select:none; }
+
+  /* ── Legend ── */
+  .legend { display:flex; gap:16px; flex-wrap:wrap; margin-top:12px; }
+  .legend-item { display:flex; align-items:center; gap:7px; font-size:12px; color:var(--gray); }
+  .legend-dot { width:16px; height:16px; border-radius:50%; border:2px solid var(--navy); flex-shrink:0; }
+
+  /* ── Progress ── */
+  .progress-bar {
+    height:4px; background:var(--border); border-radius:2px; margin-bottom:14px; overflow:hidden;
+  }
+  .progress-fill {
+    height:100%; background:var(--navy); border-radius:2px; transition:width 0.3s;
+  }
+
+  .step-counter { font-size:12px; color:var(--gray); font-family:'JetBrains Mono',monospace; }
+
+  /* ── Result badge ── */
+  .final-result {
+    font-family:'JetBrains Mono',monospace;
+    font-size:16px; font-weight:700;
+    padding:10px 24px; border-radius:2px; text-align:center;
+    display:none; margin-top:8px;
+  }
+  .final-result.show { display:block; }
+  .final-result.true  { background:var(--green); color:white; }
+  .final-result.false { background:var(--red);   color:white; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="corner-br"></div>
+  <div class="corner-bl"></div>
+
+  <header>
+    <div class="ex-label">Exercício 7 — Lista 7 · EDPA · UFG</div>
+    <h1>Árvore Binária Cheia</h1>
+    <div class="subtitle">Animação interativa de <code style="font-family:'JetBrains Mono',monospace;background:var(--navy);color:white;padding:2px 8px;border-radius:2px;font-size:13px">eh_cheia()</code> — verifique se uma árvore binária é cheia passo a passo</div>
+  </header>
+
+  <div class="main-grid">
+
+    <!-- LEFT: Tree + Controls -->
+    <div>
+      <div class="panel">
+        <div class="panel-title">Escolha uma árvore para testar</div>
+        <div class="tree-tabs">
+          <button class="tree-tab active" onclick="selectTree(0)">Cheia · 7 nós</button>
+          <button class="tree-tab" onclick="selectTree(1)">Cheia · 3 nós</button>
+          <button class="tree-tab" onclick="selectTree(2)">Não cheia · 1 filho</button>
+          <button class="tree-tab" onclick="selectTree(3)">Não cheia · raiz 1 filho</button>
+          <button class="tree-tab" onclick="selectTree(4)">Só raiz</button>
+        </div>
+
+        <svg id="treeSvg" viewBox="0 0 500 280"></svg>
+
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#C94B2C"></div>Nó interno cheio (2 filhos)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#3A6B4C"></div>Nó folha (0 filhos)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#C8860A"></div>Nó inválido (1 filho)</div>
+        </div>
+      </div>
+
+      <!-- Info box -->
+      <div class="info-box" id="infoBox">
+        <div class="info-step" id="infoStep">Aguardando início</div>
+        <div class="info-main" id="infoMain">Clique em <strong>▶ Iniciar</strong> para ver a execução passo a passo</div>
+        <div class="info-sub"  id="infoSub">A função eh_cheia() verifica se cada nó tem 0 ou 2 filhos</div>
+      </div>
+
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+
+      <div class="controls">
+        <button class="btn" id="btnStart" onclick="startAnim()">▶ Iniciar</button>
+        <button class="btn secondary" id="btnStep" onclick="nextStep()" disabled>→ Próximo passo</button>
+        <button class="btn secondary" onclick="autoPlay()" id="btnAuto">⏩ Automático</button>
+        <button class="btn secondary" onclick="resetAnim()">↺ Reset</button>
+        <span class="step-counter" id="stepCounter">Passo 0 / 0</span>
+      </div>
+
+      <div class="final-result" id="finalResult"></div>
+    </div>
+
+    <!-- RIGHT: Code + Call Stack -->
+    <div>
+      <div class="code-wrap" id="codePanel">
+        <code id="codeLines"></code>
+      </div>
+
+      <div class="panel" style="margin-top:20px">
+        <div class="panel-title">Pilha de chamadas</div>
+        <div class="call-stack" id="callStack">
+          <div style="font-size:12px;color:var(--gray);font-style:italic">A pilha aparece durante a execução...</div>
+        </div>
+      </div>
+
+      <!-- Rule box -->
+      <div style="border:2px solid var(--navy);padding:14px 18px;background:var(--cream);">
+        <div style="font-size:11px;font-weight:600;letter-spacing:2px;color:var(--gray);text-transform:uppercase;margin-bottom:10px">Regra da Árvore Cheia</div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--navy);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white">∅</div>
+            <span style="font-size:12.5px">Nó <strong>None</strong> → retorna <code style="background:rgba(58,107,76,0.15);padding:1px 6px;color:var(--green);font-size:11px">True</code></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--green);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white">0</div>
+            <span style="font-size:12.5px"><strong>0 filhos</strong> (folha) → retorna <code style="background:rgba(58,107,76,0.15);padding:1px 6px;color:var(--green);font-size:11px">True</code></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--gold);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white">1</div>
+            <span style="font-size:12.5px"><strong>1 filho</strong> → retorna <code style="background:rgba(201,75,44,0.12);padding:1px 6px;color:var(--red);font-size:11px">False</code></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:22px;height:22px;border-radius:50%;background:var(--red);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white">2</div>
+            <span style="font-size:12.5px"><strong>2 filhos</strong> → verifica esq e dir recursivamente</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  TREE DEFINITIONS
+// ═══════════════════════════════════════════════
+const TREES = [
+  {
+    label: 'Cheia · 7 nós',
+    nodes: [
+      { id:'A', x:250, y:40,  left:'B', right:'C' },
+      { id:'B', x:145, y:115, left:'D', right:'E' },
+      { id:'C', x:355, y:115, left:'F', right:'G' },
+      { id:'D', x:85,  y:200, left:null, right:null },
+      { id:'E', x:205, y:200, left:null, right:null },
+      { id:'F', x:295, y:200, left:null, right:null },
+      { id:'G', x:415, y:200, left:null, right:null },
+    ],
+    expected: true
+  },
+  {
+    label: 'Cheia · 3 nós',
+    nodes: [
+      { id:'A', x:250, y:60,  left:'B', right:'C' },
+      { id:'B', x:140, y:170, left:null, right:null },
+      { id:'C', x:360, y:170, left:null, right:null },
+    ],
+    expected: true
+  },
+  {
+    label: 'Não cheia · 1 filho',
+    nodes: [
+      { id:'A', x:250, y:40,  left:'B', right:'C' },
+      { id:'B', x:145, y:115, left:'D', right:null },
+      { id:'C', x:355, y:115, left:'E', right:'F' },
+      { id:'D', x:85,  y:200, left:null, right:null },
+      { id:'E', x:295, y:200, left:null, right:null },
+      { id:'F', x:415, y:200, left:null, right:null },
+    ],
+    expected: false
+  },
+  {
+    label: 'Não cheia · raiz 1 filho',
+    nodes: [
+      { id:'A', x:250, y:60,  left:'B', right:null },
+      { id:'B', x:145, y:170, left:null, right:null },
+    ],
+    expected: false
+  },
+  {
+    label: 'Só raiz',
+    nodes: [
+      { id:'A', x:250, y:130, left:null, right:null },
+    ],
+    expected: true
+  },
+];
+
+// ═══════════════════════════════════════════════
+//  CODE LINES
+// ═══════════════════════════════════════════════
+const CODE = [
+  { text: 'def eh_cheia(no):',                        cls: 'kw'  },
+  { text: '    # Subárvore vazia → True',             cls: 'cmt' },
+  { text: '    if no is None:',                       cls: ''    },
+  { text: '        return True',                      cls: ''    },
+  { text: '    # Nó folha (0 filhos) → True',         cls: 'cmt' },
+  { text: '    if no.esq is None and',                cls: ''    },
+  { text: '       no.dir is None:',                   cls: ''    },
+  { text: '        return True',                      cls: ''    },
+  { text: '    # Exatamente 1 filho → False',         cls: 'cmt' },
+  { text: '    if no.esq is None or',                 cls: ''    },
+  { text: '       no.dir is None:',                   cls: ''    },
+  { text: '        return False',                     cls: ''    },
+  { text: '    # 2 filhos → verifica recursivamente', cls: 'cmt' },
+  { text: '    esq_ok = eh_cheia(no.esq)',            cls: ''    },
+  { text: '    dir_ok = eh_cheia(no.dir)',            cls: ''    },
+  { text: '    return esq_ok and dir_ok',             cls: ''    },
+];
+
+// ═══════════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════════
+let currentTree = 0;
+let steps = [];
+let stepIdx = 0;
+let autoTimer = null;
+let nodeMap = {};
+
+// ═══════════════════════════════════════════════
+//  GENERATE STEPS
+// ═══════════════════════════════════════════════
+function generateSteps(nodes) {
+  const map = {};
+  nodes.forEach(n => map[n.id] = n);
+  const result = [];
+
+  function recurse(id, depth) {
+    const n = map[id];
+    const hasLeft = n.left !== null;
+    const hasRight = n.right !== null;
+
+    // Step: enter node
+    result.push({
+      node: id,
+      codeLines: [2,3],
+      type: 'check-null',
+      title: `Verificando: eh_cheia(${id})`,
+      desc: `Nó ${id} existe → não é None. Continuando...`,
+      state: 'check',
+      stackFrame: { id, status: 'active' },
+      returnVal: null,
+    });
+
+    // Check leaf
+    if (!hasLeft && !hasRight) {
+      result.push({
+        node: id,
+        codeLines: [5,6,7],
+        type: 'leaf',
+        title: `Nó ${id} é folha`,
+        desc: `${id}.esq = None  e  ${id}.dir = None → 0 filhos → satisfaz a regra`,
+        state: 'true',
+        stackFrame: { id, status: 'true' },
+        returnVal: true,
+      });
+      return true;
+    }
+
+    // Check 1 child
+    if (hasLeft !== hasRight) {
+      const child = hasLeft ? n.left : n.right;
+      result.push({
+        node: id,
+        codeLines: [9,10,11],
+        type: 'one-child',
+        title: `Nó ${id} tem exatamente 1 filho!`,
+        desc: `${id}.esq=${n.left||'None'}  ${id}.dir=${n.right||'None'} → VIOLA a regra → retorna False`,
+        state: 'false',
+        stackFrame: { id, status: 'false' },
+        returnVal: false,
+      });
+      return false;
+    }
+
+    // 2 children — recurse left
+    result.push({
+      node: id,
+      codeLines: [12,13],
+      type: 'recurse-left',
+      title: `Nó ${id}: 2 filhos — verificando subárvore esquerda`,
+      desc: `Chamando eh_cheia(${n.left}) recursivamente...`,
+      state: 'check',
+      stackFrame: { id, status: 'active' },
+      returnVal: null,
+    });
+    const leftOk = recurse(n.left, depth+1);
+
+    // recurse right
+    result.push({
+      node: id,
+      codeLines: [12,14],
+      type: 'recurse-right',
+      title: `Nó ${id}: verificando subárvore direita`,
+      desc: `esq_ok=${leftOk} → Chamando eh_cheia(${n.right}) recursivamente...`,
+      state: 'check',
+      stackFrame: { id, status: 'active' },
+      returnVal: null,
+    });
+    const rightOk = recurse(n.right, depth+1);
+
+    const both = leftOk && rightOk;
+    result.push({
+      node: id,
+      codeLines: [15],
+      type: 'return-both',
+      title: `Nó ${id}: retornando resultado`,
+      desc: `esq_ok=${leftOk}  and  dir_ok=${rightOk}  →  return ${both}`,
+      state: both ? 'true' : 'false',
+      stackFrame: { id, status: both ? 'true' : 'false' },
+      returnVal: both,
+    });
+    return both;
+  }
+
+  const root = nodes[0].id;
+  recurse(root, 0);
+  return result;
+}
+
+// ═══════════════════════════════════════════════
+//  DRAW TREE
+// ═══════════════════════════════════════════════
+function getNodeColor(id, activeId) {
+  const n = nodeMap[id];
+  const hasLeft = n.left !== null;
+  const hasRight = n.right !== null;
+  if (!hasLeft && !hasRight) return '#3A6B4C';
+  if (hasLeft !== hasRight)  return '#C8860A';
+  return '#C94B2C';
+}
+
+function drawTree(treeIdx) {
+  const tree = TREES[treeIdx];
+  const svg = document.getElementById('treeSvg');
+  svg.innerHTML = '';
+  nodeMap = {};
+  tree.nodes.forEach(n => nodeMap[n.id] = n);
+
+  const ns = 'http://www.w3.org/2000/svg';
+
+  // Edges
+  tree.nodes.forEach(n => {
+    [n.left, n.right].forEach(child => {
+      if (!child) return;
+      const c = nodeMap[child];
+      const line = document.createElementNS(ns, 'line');
+      line.setAttribute('x1', n.x); line.setAttribute('y1', n.y);
+      line.setAttribute('x2', c.x); line.setAttribute('y2', c.y);
+      line.setAttribute('class', 'tree-edge');
+      line.setAttribute('id', `edge-${n.id}-${child}`);
+      svg.appendChild(line);
+    });
+  });
+
+  // Nodes
+  tree.nodes.forEach(n => {
+    const g = document.createElementNS(ns, 'g');
+    g.setAttribute('class', 'tree-node');
+    g.setAttribute('id', `node-${n.id}`);
+
+    const circle = document.createElementNS(ns, 'circle');
+    circle.setAttribute('cx', n.x); circle.setAttribute('cy', n.y); circle.setAttribute('r', 26);
+    circle.setAttribute('fill', getNodeColor(n.id, null));
+    g.appendChild(circle);
+
+    const text = document.createElementNS(ns, 'text');
+    text.setAttribute('x', n.x); text.setAttribute('y', n.y);
+    text.textContent = n.id;
+    g.appendChild(text);
+
+    svg.appendChild(g);
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  RENDER CODE
+// ═══════════════════════════════════════════════
+function renderCode(hlLines) {
+  const el = document.getElementById('codeLines');
+  el.innerHTML = CODE.map((line, i) => {
+    const isHL = hlLines && hlLines.includes(i);
+    return `<span class="code-line ${line.cls}${isHL?' hl':''}"><span class="line-num">${String(i+1).padStart(2,'0')}</span>${escHtml(line.text)}</span>`;
+  }).join('');
+}
+function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ═══════════════════════════════════════════════
+//  APPLY STEP
+// ═══════════════════════════════════════════════
+function applyStep(idx) {
+  if (idx < 0 || idx >= steps.length) return;
+  const step = steps[idx];
+
+  // Highlight node
+  document.querySelectorAll('.tree-node').forEach(g => {
+    g.classList.remove('active','done-true','done-false');
+  });
+  const activeG = document.getElementById(`node-${step.node}`);
+  if (activeG) activeG.classList.add('active');
+
+  // Mark done nodes (all before current)
+  for (let i = 0; i < idx; i++) {
+    const s = steps[i];
+    if (s.returnVal !== null) {
+      const g = document.getElementById(`node-${s.node}`);
+      if (g) g.classList.add(s.returnVal ? 'done-true' : 'done-false');
+    }
+  }
+
+  // Code
+  renderCode(step.codeLines);
+
+  // Info box
+  const box = document.getElementById('infoBox');
+  box.className = `info-box state-${step.state}`;
+  document.getElementById('infoStep').textContent = `Passo ${idx+1} de ${steps.length}  ·  Nó: ${step.node}`;
+  document.getElementById('infoMain').textContent = step.title;
+  document.getElementById('infoSub').textContent  = step.desc;
+
+  // Call stack
+  buildCallStack(idx);
+
+  // Progress
+  document.getElementById('progressFill').style.width = `${((idx+1)/steps.length)*100}%`;
+  document.getElementById('stepCounter').textContent = `Passo ${idx+1} / ${steps.length}`;
+
+  // Final result
+  const finalEl = document.getElementById('finalResult');
+  if (idx === steps.length - 1) {
+    const res = steps[steps.length-1].returnVal;
+    const expected = TREES[currentTree].expected;
+    finalEl.className = `final-result show ${res?'true':'false'}`;
+    finalEl.textContent = `eh_cheia(raiz)  →  ${res}  ${res === expected ? '✓' : '✗'}`;
+  } else {
+    finalEl.className = 'final-result';
+  }
+}
+
+function buildCallStack(upToIdx) {
+  // Build stack from all steps up to current
+  const el = document.getElementById('callStack');
+  const frames = [];
+  for (let i = 0; i <= upToIdx; i++) {
+    const s = steps[i];
+    const existing = frames.findIndex(f => f.id === s.node);
+    if (existing === -1) {
+      frames.push({ id: s.node, status: s.stackFrame.status });
+    } else {
+      frames[existing].status = s.stackFrame.status;
+    }
+  }
+  // Only show frames still on stack (not returned)
+  const activeFrames = [];
+  for (let i = 0; i <= upToIdx; i++) {
+    const s = steps[i];
+    if (s.returnVal !== null) {
+      // This node returned — remove from "pending" call
+    }
+  }
+
+  // Simpler approach: show last N unique calls
+  const seen = new Map();
+  for (let i = upToIdx; i >= 0; i--) {
+    const s = steps[i];
+    if (!seen.has(s.node)) seen.set(s.node, s.stackFrame.status);
+  }
+
+  const activeNodes = [...seen.entries()].slice(0, 6);
+  el.innerHTML = activeNodes.map(([id, status], idx) => {
+    const cls = idx === 0 ? 'active' : (status==='true'?'returned-true':status==='false'?'returned-false':'');
+    const badge = status==='true'? '<span class="call-badge true">True</span>' :
+                  status==='false'?'<span class="call-badge false">False</span>':
+                  '<span class="call-badge pending">...</span>';
+    return `<div class="call-frame ${cls}"><span>eh_cheia(${id})</span>${badge}</div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+//  PUBLIC INTERFACE
+// ═══════════════════════════════════════════════
+function selectTree(idx) {
+  document.querySelectorAll('.tree-tab').forEach((t,i) => t.classList.toggle('active', i===idx));
+  currentTree = idx;
+  resetAnim();
+  drawTree(idx);
+}
+
+function startAnim() {
+  if (steps.length === 0) {
+    steps = generateSteps(TREES[currentTree].nodes);
+    stepIdx = 0;
+  }
+  document.getElementById('btnStep').disabled = false;
+  document.getElementById('btnStart').disabled = true;
+  applyStep(stepIdx);
+}
+
+function nextStep() {
+  if (stepIdx < steps.length - 1) {
+    stepIdx++;
+    applyStep(stepIdx);
+  }
+}
+
+function autoPlay() {
+  if (autoTimer) { clearInterval(autoTimer); autoTimer=null; document.getElementById('btnAuto').textContent='⏩ Automático'; return; }
+  if (steps.length === 0) startAnim();
+  document.getElementById('btnAuto').textContent = '⏸ Pausar';
+  autoTimer = setInterval(() => {
+    if (stepIdx < steps.length - 1) {
+      stepIdx++;
+      applyStep(stepIdx);
+    } else {
+      clearInterval(autoTimer); autoTimer=null;
+      document.getElementById('btnAuto').textContent='⏩ Automático';
+    }
+  }, 1100);
+}
+
+function resetAnim() {
+  if (autoTimer) { clearInterval(autoTimer); autoTimer=null; }
+  steps = []; stepIdx = 0;
+  document.getElementById('btnStep').disabled = true;
+  document.getElementById('btnStart').disabled = false;
+  document.getElementById('btnAuto').textContent = '⏩ Automático';
+  document.getElementById('progressFill').style.width = '0%';
+  document.getElementById('stepCounter').textContent = 'Passo 0 / 0';
+  document.getElementById('finalResult').className = 'final-result';
+  document.getElementById('callStack').innerHTML = '<div style="font-size:12px;color:var(--gray);font-style:italic">A pilha aparece durante a execução...</div>';
+  document.getElementById('infoBox').className = 'info-box';
+  document.getElementById('infoStep').textContent = 'Aguardando início';
+  document.getElementById('infoMain').textContent = 'Clique em ▶ Iniciar para ver a execução passo a passo';
+  document.getElementById('infoSub').textContent  = 'A função eh_cheia() verifica se cada nó tem 0 ou 2 filhos';
+  renderCode([]);
+  drawTree(currentTree);
+}
+
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+drawTree(0);
+renderCode([]);
+</script>
+</body>
+</html>
